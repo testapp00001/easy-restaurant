@@ -11,6 +11,7 @@ import (
 type Config struct {
 	ServerPort  string
 	PostgresDSN string
+	JWTSecret   string
 }
 
 // LoadConfig loads configuration from .env file
@@ -24,6 +25,7 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		ServerPort:  os.Getenv("SERVER_PORT"),
 		PostgresDSN: os.Getenv("POSTGRES_DSN"),
+		JWTSecret:   os.Getenv("JWT_SECRET"),
 	}
 
 	return cfg, nil
