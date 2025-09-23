@@ -6,10 +6,12 @@ import (
 	"restaurant-api/internal/config"
 	"restaurant-api/internal/database"
 	"restaurant-api/internal/handlers"
+	"restaurant-api/internal/hub"
 	"restaurant-api/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/websocket/v2"
 )
 
 func main() {
@@ -37,6 +39,22 @@ func main() {
 		})
 	})
 
+	// Initialize the WebSocket Hub
+	wsHub := hub.NewHub() // Create a local variable for the hub
+	go wsHub.Run()        // Run it in a goroutine
+
+	// WebSocket Upgrade Middleware and Endpoint
+	app.Use("/ws", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+
+	// websocket route
+	app.Get("/ws/:id", websocket.New(handlers.WebSocketHandler(wsHub)))
+
 	// --- API V1 Routes ---
 	api := app.Group("/api/v1")
 
@@ -58,6 +76,19 @@ func main() {
 	customerGroup.Post("/session/attach-table", handlers.AttachTable(database.DB))
 	customerGroup.Get("/menu", handlers.GetMenu(database.DB))
 	customerGroup.Post("/orders", handlers.CreateOrder(database.DB))
+
+	// --- Kitchen Routes (Protected by Staff Auth) ---
+	kitchenGroup := api.Group("/kitchen")
+	kitchenGroup.Use(auth.AuthMiddleware(cfg, models.ChefRole)) // Protects all kitchen routes
+
+	// Manager-specific routes
+	kitchenGroup.Get("/orders/pending", auth.AuthMiddleware(cfg, models.KitchenManagerRole), handlers.GetPendingOrders(database.DB))
+	kitchenGroup.Put("/orders/review", auth.AuthMiddleware(cfg, models.KitchenManagerRole), handlers.ReviewOrder(database.DB, wsHub))
+
+	// Chef routes
+	kitchenGroup.Get("/group/:id/items", handlers.GetGroupItems(database.DB))
+	kitchenGroup.Put("/order-items/:id/assign", handlers.AssignOrderItem(database.DB))
+	kitchenGroup.Put("/order-items/:id/status", handlers.UpdateOrderItemStatus(database.DB))
 
 	// 5. Start the server
 	log.Printf("Server starting on port %s", cfg.ServerPort)

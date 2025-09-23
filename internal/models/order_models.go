@@ -10,7 +10,7 @@ type Order struct {
 	UserSession          UserSession
 	TableIDAtTimeOfOrder uint
 	RestaurantTable      RestaurantTable `gorm:"foreignKey:TableIDAtTimeOfOrder"`
-	Status               string `gorm:"type:varchar(20);default:'PendingApproval'"`
+	Status               string          `gorm:"type:varchar(20);default:'PendingApproval'"`
 	OrderItems           []OrderItem
 }
 
@@ -27,4 +27,5 @@ type OrderItem struct {
 	Status             string    `gorm:"type:varchar(20);default:'Pending'"`
 	AssignedChefID     *uint     // Pointer to allow null
 	StaffUser          StaffUser `gorm:"foreignKey:AssignedChefID"`
+	RejectedReason     string
 }
