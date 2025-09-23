@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -22,9 +23,19 @@ func LoadConfig() (*Config, error) {
 		log.Println("No .env file found, using environment variables")
 	}
 
+	POSTGRES_DSN := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_DB"),
+		os.Getenv("DB_PORT"),
+	)
+
+	fmt.Println(POSTGRES_DSN)
+
 	cfg := &Config{
 		ServerPort:  os.Getenv("SERVER_PORT"),
-		PostgresDSN: os.Getenv("POSTGRES_DSN"),
+		PostgresDSN: POSTGRES_DSN,
 		JWTSecret:   os.Getenv("JWT_SECRET"),
 	}
 
