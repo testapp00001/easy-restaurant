@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"restaurant-api/internal/auth"
 	"restaurant-api/internal/config"
 	"restaurant-api/internal/database"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/websocket/v2"
 	"gorm.io/gorm"
@@ -53,8 +55,17 @@ func main() {
 	// 3. Initialize Fiber App
 	app := fiber.New()
 
+	// Add CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: cfg.AllowOrigins, // CHANGE THIS
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	}))
+
 	// Add a logger middleware for better request logging
-	app.Use(logger.New())
+	app.Use(logger.New(logger.Config{
+		Format: `{"ip":"${ip}","timestamp":"${time}","status":${status},"latency":"${latency}","method":"${method}","path":"${path}","error":"${error}"}` + "\n",
+		Output: os.Stdout,
+	}))
 
 	// 4. Setup a simple health check endpoint
 	app.Get("/health", func(c *fiber.Ctx) error {

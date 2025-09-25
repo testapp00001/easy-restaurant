@@ -1,9 +1,24 @@
 services:
+  # Go Application Service
+  app:
+    container_name: restaurant-api-app
+    build: . # Build the image from the Dockerfile in the current directory
+    restart: always
+    ports:
+      - "3000:3000" # Map host port 3000 to container port 3000
+    depends_on:
+      - postgres-db # Ensures the database starts before the app
+    environment:
+      # We can override .env variables here for different environments
+      SERVER_PORT: :3000
+      POSTGRES_DSN: "host=postgres-db user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_DB} port=5432 sslmode=disable TimeZone=UTC"
+  
+  # PostgreSQL Database Service
   postgres-db:
     image: postgres:18rc1-alpine
     container_name: restaurant-postgres
     restart: always
-    environment:
+    environment:  
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DB}
