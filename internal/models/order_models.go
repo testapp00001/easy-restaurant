@@ -11,6 +11,7 @@ type Order struct {
 	TableIDAtTimeOfOrder uint
 	RestaurantTable      RestaurantTable `gorm:"foreignKey:TableIDAtTimeOfOrder"`
 	Status               string          `gorm:"type:varchar(20);default:'PendingApproval'"`
+	IsPaid               bool            `gorm:"default:false"`
 	OrderItems           []OrderItem
 }
 

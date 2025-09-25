@@ -53,13 +53,27 @@ func AuthMiddleware(cfg *config.Config, requiredRole models.StaffRole) fiber.Han
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid JWT claims"})
 		}
 
-		// Check role
+		// --- START THE IMPROVEMENT ---
+
+		// 1. Safely extract the user ID as a float64
+		userIDFloat, ok := claims["user_id"].(float64)
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID in token"})
+		}
+
+		// 2. Convert it to the correct type (uint)
+		userID := uint(userIDFloat)
+
+		// 3. Extract the role
 		role := models.StaffRole(claims["role"].(string))
-		if role != requiredRole && role != models.AdminRole { // Admins can do anything
+
+		// 4. Perform role check
+		if role != requiredRole && role != models.AdminRole {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 		}
 
-		c.Locals("user_id", claims["user_id"])
+		// 5. Store the CORRECTLY TYPED values in c.Locals
+		c.Locals("user_id", userID) // Now stores a uint
 		c.Locals("role", role)
 		return c.Next()
 	}

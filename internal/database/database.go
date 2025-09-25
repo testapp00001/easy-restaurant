@@ -34,6 +34,7 @@ func ConnectDB(cfg *config.Config) {
 		&models.BuffetBundle{},
 		&models.Order{},
 		&models.OrderItem{},
+		&models.Payment{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)

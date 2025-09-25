@@ -21,12 +21,13 @@ type UserAccount struct {
 // UserSession represents a single customer visit
 type UserSession struct {
 	gorm.Model
-	UserAccountID   uint
-	UserAccount     UserAccount
-	BuffetBundleID  uint
-	BuffetBundle    BuffetBundle
-	CurrentTableID  *uint           // Pointer to allow null
-	RestaurantTable RestaurantTable `gorm:"foreignKey:CurrentTableID"`
-	Status          string          `gorm:"type:varchar(20);default:'Active'"` // Active, Paid, Ended
-	ExpiresAt       time.Time       `gorm:"not null"`
+	UserAccountID       uint
+	UserAccount         UserAccount
+	BuffetBundleID      uint
+	BuffetBundle        BuffetBundle
+	CurrentTableID      *uint           // Pointer to allow null
+	RestaurantTable     RestaurantTable `gorm:"foreignKey:CurrentTableID"`
+	Status              string          `gorm:"type:varchar(20);default:'Active'"` // Active, Paid, Ended
+	BuffetPaymentStatus string          `gorm:"type:varchar(20);default:'Unpaid'"`
+	ExpiresAt           time.Time       `gorm:"not null"`
 }

@@ -8,11 +8,33 @@ import (
 	"restaurant-api/internal/handlers"
 	"restaurant-api/internal/hub"
 	"restaurant-api/internal/models"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/websocket/v2"
+	"gorm.io/gorm"
 )
+
+// Add this function somewhere in your main.go
+func runSessionCleanup(db *gorm.DB) {
+	ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
+	defer ticker.Stop()
+
+	for range ticker.C {
+		log.Println("Running session cleanup...")
+		now := time.Now()
+		result := db.Model(&models.UserSession{}).
+			Where("status = ? AND expires_at < ?", "Active", now).
+			Update("status", "Ended")
+
+		if result.Error != nil {
+			log.Printf("Error during session cleanup: %v", result.Error)
+		} else if result.RowsAffected > 0 {
+			log.Printf("Cleaned up %d expired sessions.", result.RowsAffected)
+		}
+	}
+}
 
 func main() {
 	// 1. Load Configuration
@@ -24,6 +46,9 @@ func main() {
 	// 2. Connect to Database
 	database.ConnectDB(cfg)
 	database.SeedDatabase()
+
+	// Start the session cleanup goroutine
+	go runSessionCleanup(database.DB)
 
 	// 3. Initialize Fiber App
 	app := fiber.New()
@@ -63,12 +88,27 @@ func main() {
 	authGroup.Post("/staff/login", handlers.LoginStaff(database.DB, cfg))
 	authGroup.Post("/customer/login", handlers.LoginCustomer(database.DB, cfg))
 
+	// --- Admin Routes (Protected by Admin only) ---
+	adminGroup := api.Group("/admin")
+	adminGroup.Use(auth.AuthMiddleware(cfg, models.AdminRole))
+	// Table management
+	adminGroup.Post("/tables", handlers.CreateTable(database.DB))
+	adminGroup.Get("/tables", handlers.GetTables(database.DB))
+	adminGroup.Put("/tables/:id/status", handlers.UpdateTableStatus(database.DB))
+	// Menu management
+	adminGroup.Post("/menu-items", handlers.CreateMenuItem(database.DB))
+	adminGroup.Get("/menu-items", handlers.GetMenuItems(database.DB))
+	adminGroup.Put("/menu-items/:id", handlers.UpdateMenuItem(database.DB))
+
 	// --- Staff Routes (Protected) ---
 	staffGroup := api.Group("/staff")
 	// Apply middleware for WaitStaff and above
 	staffGroup.Use(auth.AuthMiddleware(cfg, models.WaitStaffRole))
 	staffGroup.Post("/customer-accounts", handlers.CreateCustomerAccount(database.DB))
 	staffGroup.Post("/customer-sessions", handlers.CreateCustomerSession(database.DB))
+	// Billing routes
+	staffGroup.Get("/sessions/:id/bill", handlers.GetSessionBill(database.DB))
+	staffGroup.Post("/sessions/:id/payments", handlers.ProcessSessionPayment(database.DB))
 
 	// --- Customer Routes (Protected by Customer Auth) ---
 	customerGroup := api.Group("/customer")
