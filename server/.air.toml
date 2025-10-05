@@ -1,0 +1,33 @@
+# This is the root directory of your project.
+root = "."
+
+# This is a temporary directory for the build.
+tmp_dir = "tmp"
+
+[build]
+# This is the command to build your application.
+# It will create an executable named 'server' in the tmp directory.
+cmd = "go build -o ./tmp/server ./cmd/server"
+
+# This is the command to run your application.
+bin = "./tmp/server"
+
+# Watch these file extensions.
+include_ext = ["go", "tpl", "tmpl", "html"]
+
+# Ignore these directories.
+exclude_dir = ["assets", "tmp", "vendor", "frontend"]
+
+# This delay will wait 1 second before restarting the server on change.
+delay = 1000 # ms
+
+[log]
+# Show log time
+time = true
+
+[color]
+# Customize colors.
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"

@@ -1,34 +1,53 @@
-# --- Build Stage ---
-# Use the official Golang image as a builder
-FROM golang:1.25-alpine AS builder
+# file: Dockerfile
 
-# Set the working directory inside the container
+# =================================================================
+# 1. Development Stage (`development`)
+# This stage includes the Go toolchain and air for live reloading.
+# =================================================================
+FROM golang:1.25-alpine AS development
+
+# Install air for live reloading
+RUN go install github.com/air-verse/air@latest
+
 WORKDIR /app
 
-# Copy go mod and sum files
+# Copy go.mod and go.sum first to leverage Docker cache
 COPY go.mod go.sum ./
-
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the source code into the container
+# Copy the rest of the application source code
 COPY . .
 
-# Build the Go app, creating a static binary. CGO_ENABLED=0 is important for a lightweight final image.
+# This is the command that will be run by our docker-compose dev setup
+CMD ["air", "-c", ".air.toml"]
+
+
+# =================================================================
+# 2. Builder Stage (`builder`)
+# This stage is for compiling the production binary.
+# =================================================================
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+# Build the static binary for production
 RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/server
 
-# --- Final Stage ---
-# Use a minimal, non-root alpine image for the final container
-FROM alpine:latest
 
-# Set the working directory
+# =================================================================
+# 3. Production Stage (`production`)
+# This is the final, minimal image for deployment.
+# =================================================================
+FROM alpine:latest AS production
+
 WORKDIR /
 
-# Copy the built binary from the builder stage
+# Copy only the built binary from the builder stage
 COPY --from=builder /server /server
-
-# Copy the .env file. In a real production scenario, you would manage these as secrets.
-COPY .env .
 
 # Expose the port the app runs on
 EXPOSE 3000
