@@ -7,16 +7,48 @@ import (
 	"gorm.io/gorm"
 )
 
+type CreateTableRequest struct {
+	TableNumber string `json:"table_number"`
+}
+
+type UpdateTableStatusRequest struct {
+	Status models.TableStatus `json:"status"`
+}
+
+type CreateMenuItemRequest struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	CategoryID  uint    `json:"category_id"`
+	IsAvailable bool    `json:"is_available"`
+}
+
+type UpdateMenuItemRequest struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	CategoryID  uint    `json:"category_id"`
+	IsAvailable bool    `json:"is_available"`
+}
+
 // --- Table Management ---
 
 // CreateTable adds a new restaurant table
 func CreateTable(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		var table models.RestaurantTable
-		if err := c.BodyParser(&table); err != nil {
+		var req CreateTableRequest
+		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
 		}
-		db.Create(&table)
+
+		table := models.RestaurantTable{
+			TableNumber: req.TableNumber,
+		}
+
+		if err := db.Create(&table).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create table"})
+		}
+
 		return c.Status(fiber.StatusCreated).JSON(table)
 	}
 }
@@ -34,14 +66,17 @@ func GetTables(db *gorm.DB) fiber.Handler {
 func UpdateTableStatus(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id := c.Params("id")
-		var req struct {
-			Status models.TableStatus `json:"status"`
-		}
+
+		var req UpdateTableStatusRequest
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
 		}
 
-		db.Model(&models.RestaurantTable{}).Where("id = ?", id).Update("status", req.Status)
+		result := db.Model(&models.RestaurantTable{}).Where("id = ?", id).Update("status", req.Status)
+		if result.Error != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update status"})
+		}
+
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success"})
 	}
 }
@@ -51,11 +86,23 @@ func UpdateTableStatus(db *gorm.DB) fiber.Handler {
 // CreateMenuItem adds a new menu item
 func CreateMenuItem(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		var item models.MenuItem
-		if err := c.BodyParser(&item); err != nil {
+		var req CreateMenuItemRequest
+		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
 		}
-		db.Create(&item)
+
+		item := models.MenuItem{
+			Name:        req.Name,
+			Description: req.Description,
+			Price:       req.Price,
+			CategoryID:  req.CategoryID,
+			IsAvailable: req.IsAvailable,
+		}
+
+		if err := db.Create(&item).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create menu item"})
+		}
+
 		return c.Status(fiber.StatusCreated).JSON(item)
 	}
 }
@@ -64,7 +111,7 @@ func CreateMenuItem(db *gorm.DB) fiber.Handler {
 func GetMenuItems(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var items []models.MenuItem
-		db.Find(&items)
+		db.Preload("Category").Find(&items)
 		return c.JSON(items)
 	}
 }
@@ -73,11 +120,30 @@ func GetMenuItems(db *gorm.DB) fiber.Handler {
 func UpdateMenuItem(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		id := c.Params("id")
-		var item models.MenuItem
-		if err := c.BodyParser(&item); err != nil {
+
+		var req UpdateMenuItemRequest
+		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
 		}
-		db.Model(&models.MenuItem{}).Where("id = ?", id).Updates(item)
-		return c.Status(fiber.StatusOK).JSON(item)
+
+		updateData := map[string]interface{}{
+			"name":         req.Name,
+			"description":  req.Description,
+			"price":        req.Price,
+			"category_id":  req.CategoryID,
+			"is_available": req.IsAvailable,
+		}
+
+		result := db.Model(&models.MenuItem{}).Where("id = ?", id).Updates(updateData)
+		if result.Error != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update menu item"})
+		}
+		if result.RowsAffected == 0 {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Menu item not found"})
+		}
+
+		var updatedItem models.MenuItem
+		db.First(&updatedItem, id)
+		return c.Status(fiber.StatusOK).JSON(updatedItem)
 	}
 }
