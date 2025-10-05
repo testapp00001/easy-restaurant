@@ -3,11 +3,17 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import { ThemeProvider } from '@/contexts/ThemeProvider.tsx';
 import App from '@/App';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+} from 'react-router-dom';
 import { LoginPage } from '@/pages/LoginPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { AuthProvider } from '@/contexts/AuthProvider';
+import { StaffLayout } from '@/pages/staff/StaffLayout';
+import { OnboardingPage } from '@/pages/staff/OnboardingPage';
 
 // Define routes
 const router = createBrowserRouter([
@@ -16,6 +22,10 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       {
+        index: true, // Add this to redirect from "/"
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
         path: 'login',
         element: <LoginPage />,
       },
@@ -23,10 +33,22 @@ const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           {
-            path: 'dashboard',
-            element: <DashboardPage />,
+            element: <StaffLayout />, // Wrap protected pages in the layout
+            children: [
+              {
+                path: 'dashboard',
+                element: <DashboardPage />,
+              },
+              {
+                path: 'onboarding',
+                element: <OnboardingPage />,
+              },
+              {
+                path: 'tables',
+                element: <div>Table Management Page Placeholder</div>,
+              },
+            ],
           },
-          // All other future protected routes will go here
         ],
       },
     ],

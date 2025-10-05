@@ -1,10 +1,9 @@
-import { ModeToggle } from '@/components/ModeToggle'
-import './App.css'
-import { Outlet } from "react-router-dom"
-import { Toaster } from '@/components/ui/sonner'
+import { ModeToggle } from '@/components/ModeToggle';
+import './App.css';
+import { Outlet } from 'react-router-dom';
+import { Toaster } from '@/components/ui/sonner';
 
 function App() {
-
   return (
     <>
       <div className="absolute top-4 right-4">
@@ -13,10 +12,9 @@ function App() {
       <main>
         <Outlet />
       </main>
-      <Toaster />
+      <Toaster position="top-center" richColors closeButton />
     </>
-
-  )
+  );
 }
 
-export default App
+export default App;
