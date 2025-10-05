@@ -1,13 +1,21 @@
+import { ModeToggle } from '@/components/ModeToggle'
 import './App.css'
+import { Outlet } from "react-router-dom"
+import { Toaster } from '@/components/ui/sonner'
 
 function App() {
 
   return (
-     <div className="flex h-screen w-full items-center justify-center">
-      <h1 className="text-3xl font-bold text-primary">
-        Restaurant Frontend is Running!
-      </h1>
-    </div>
+    <>
+      <div className="absolute top-4 right-4">
+        <ModeToggle />
+      </div>
+      <main>
+        <Outlet />
+      </main>
+      <Toaster />
+    </>
+
   )
 }
 

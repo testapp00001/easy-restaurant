@@ -140,7 +140,7 @@
   --chart-5: 240 50% 85%;
 }
 
-.dark .theme-ocean {
+.dark.theme-ocean {
   --background: 215 50% 13%; /* Deep ocean blue */
   --foreground: 204 100% 95%; /* Light cyan-white text */
   --card: 215 50% 18%; /* Slightly lighter blue */
@@ -197,7 +197,7 @@
   --chart-5: 310 55% 75%;
 }
 
-.dark .theme-sunset {
+.dark.theme-sunset {
   --background: 20 60% 10%; /* Very dark brown/red */
   --foreground: 39 100% 97%; /* Creamy text */
   --card: 20 60% 15%;
